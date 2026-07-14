@@ -49,6 +49,7 @@ export const authService = {
       full_name: formData.fullName,
       email: formData.email,
       password: formData.password,
+      confirmPassword: formData.confirmPassword,
     });
     return { user: mapUser(data.data.user), token: data.data.token };
   },
@@ -64,7 +65,10 @@ export const authService = {
   },
 
   forgotPassword: async (email: string): Promise<{ message: string }> => {
-    const { data } = await api.post<{ success: boolean; message: string }>("/auth/forgot-password", { email });
+    const { data } = await api.post<{ success: boolean; message: string }>(
+      "/auth/forgot-password",
+      { email },
+    );
     return { message: data.message };
   },
 

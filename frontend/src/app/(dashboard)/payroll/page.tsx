@@ -50,7 +50,9 @@ export default function PayrollDashboardPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h2 className="font-display-md text-display-md text-on-surface">Payroll Overview</h2>
-            <p className="font-body-lg text-on-surface-variant">Cycle Period: Oct 1 – Oct 15, 2024</p>
+            <p className="font-body-lg text-on-surface-variant">
+              Cycle Period: Oct 1 – Oct 15, 2024
+            </p>
           </div>
           <Link
             href="/payroll/run"
@@ -70,7 +72,9 @@ export default function PayrollDashboardPage() {
             </div>
             <div className="flex items-center gap-2 mb-4">
               <span className="w-3 h-3 rounded-full bg-tertiary animate-pulse" />
-              <span className="font-label-sm text-tertiary uppercase tracking-wider">Current Cycle Status</span>
+              <span className="font-label-sm text-tertiary uppercase tracking-wider">
+                Current Cycle Status
+              </span>
             </div>
             <h3 className="font-display-lg text-display-lg text-on-surface mb-2">Processing</h3>
             <div className="flex items-center gap-4 mt-6">
@@ -88,9 +92,13 @@ export default function PayrollDashboardPage() {
           <div className="bg-white p-6 rounded-xl border border-outline-variant card-shadow card-hover transition-all">
             <div className="flex justify-between items-start mb-4">
               <span className="font-label-sm text-on-surface-variant">Total Gross Pay</span>
-              <span className="material-symbols-outlined text-primary bg-primary/5 p-2 rounded-lg">payments</span>
+              <span className="material-symbols-outlined text-primary bg-primary/5 p-2 rounded-lg">
+                payments
+              </span>
             </div>
-            <p className="font-display-md text-display-md text-on-surface">{formatCurrency(428540)}</p>
+            <p className="font-display-md text-display-md text-on-surface">
+              {formatCurrency(428540)}
+            </p>
             <div className="mt-2 flex items-center gap-1 text-on-primary-fixed-variant">
               <MaterialIcon icon="trending_up" className="text-[16px]" />
               <span className="font-label-sm">3.2% vs last month</span>
@@ -101,9 +109,13 @@ export default function PayrollDashboardPage() {
           <div className="bg-white p-6 rounded-xl border border-outline-variant card-shadow card-hover transition-all">
             <div className="flex justify-between items-start mb-4">
               <span className="font-label-sm text-on-surface-variant">Total Net Pay</span>
-              <span className="material-symbols-outlined text-secondary bg-secondary/5 p-2 rounded-lg">account_balance</span>
+              <span className="material-symbols-outlined text-secondary bg-secondary/5 p-2 rounded-lg">
+                account_balance
+              </span>
             </div>
-            <p className="font-display-md text-display-md text-on-surface">{formatCurrency(312240.5)}</p>
+            <p className="font-display-md text-display-md text-on-surface">
+              {formatCurrency(312240.5)}
+            </p>
             <div className="mt-2">
               <span className="font-label-sm text-outline">Standard disbursement range</span>
             </div>
@@ -119,9 +131,24 @@ export default function PayrollDashboardPage() {
             </div>
             <div className="p-6 space-y-6">
               {[
-                { icon: "account_balance", label: "Federal Tax", sub: "Social Security, Medicare", amount: 82410 },
-                { icon: "map", label: "State/Local Tax", sub: "NY, CA, TX Jurisdictions", amount: 24180.2 },
-                { icon: "health_and_safety", label: "Benefits & 401k", sub: "Employer matching included", amount: 9709.3 },
+                {
+                  icon: "account_balance",
+                  label: "Federal Tax",
+                  sub: "Social Security, Medicare",
+                  amount: 82410,
+                },
+                {
+                  icon: "map",
+                  label: "State/Local Tax",
+                  sub: "NY, CA, TX Jurisdictions",
+                  amount: 24180.2,
+                },
+                {
+                  icon: "health_and_safety",
+                  label: "Benefits & 401k",
+                  sub: "Employer matching included",
+                  amount: 9709.3,
+                },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -147,7 +174,9 @@ export default function PayrollDashboardPage() {
           <div className="lg:col-span-2 bg-white rounded-xl border border-outline-variant card-shadow overflow-hidden">
             <div className="p-6 border-b border-outline-variant flex justify-between items-center">
               <h4 className="font-headline-sm text-on-surface">Active Payroll Runs</h4>
-              <button className="text-primary font-label-md hover:underline">View All History</button>
+              <button className="text-primary font-label-md hover:underline">
+                View All History
+              </button>
             </div>
             {isLoading ? (
               <LoadingSpinner />
@@ -156,26 +185,43 @@ export default function PayrollDashboardPage() {
                 <table className="w-full text-left">
                   <thead className="bg-surface-container-low text-on-surface-variant uppercase text-label-sm font-label-sm">
                     <tr>
-                      {["ID / Description", "Pay Date", "Employees", "Total Value", "Status", ""].map((h) => (
-                        <th key={h} className="px-6 py-4">{h}</th>
+                      {[
+                        "ID / Description",
+                        "Pay Date",
+                        "Employees",
+                        "Total Value",
+                        "Status",
+                        "",
+                      ].map((h) => (
+                        <th key={h} className="px-6 py-4">
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant">
                     {PAYROLL_RUNS.map((run) => (
-                      <tr key={run.id} className="hover:bg-surface-container-low transition-colors group">
+                      <tr
+                        key={run.id}
+                        className="hover:bg-surface-container-low transition-colors group"
+                      >
                         <td className="px-6 py-4">
                           <p className="font-label-md text-on-surface">{run.id}</p>
                           <p className="font-label-sm text-on-surface-variant">{run.description}</p>
                         </td>
                         <td className="px-6 py-4 font-body-md text-on-surface">{run.payDate}</td>
                         <td className="px-6 py-4 font-body-md text-on-surface">{run.employees}</td>
-                        <td className="px-6 py-4 font-label-md text-on-surface">{formatCurrency(run.total)}</td>
+                        <td className="px-6 py-4 font-label-md text-on-surface">
+                          {formatCurrency(run.total)}
+                        </td>
                         <td className="px-6 py-4">
                           <StatusBadge status={run.status} />
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <MaterialIcon icon="chevron_right" className="text-outline group-hover:text-primary transition-colors" />
+                          <MaterialIcon
+                            icon="chevron_right"
+                            className="text-outline group-hover:text-primary transition-colors"
+                          />
                         </td>
                       </tr>
                     ))}

@@ -14,6 +14,7 @@ export function validate(req, res, next) {
       field: e.path,
       message: e.msg,
     }));
+    console.log(errors.array());
     return sendError(res, 422, "Validation failed.", formatted);
   }
 

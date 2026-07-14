@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { productsService } from "@/services/products";
 
 export function usePayrollRuns() {
@@ -11,7 +11,17 @@ export function usePayrollRuns() {
 }
 
 export function useRunPayroll() {
+  const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: () => productsService.runPayroll(),
+    mutationFn: (payload: {
+      employeeId: number;
+      bonus?: number;
+      deduction?: number;
+      periodId?: number;
+    }) => productsService.runPayroll(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["payroll"] });
+    },
   });
 }

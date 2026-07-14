@@ -33,14 +33,38 @@ export default function RegisterPage() {
     terms: false,
   });
   const [success, setSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.password !== form.confirmPassword) return;
+    setErrorMessage("");
+
+    if (!form.terms) {
+      setErrorMessage("Please accept the terms and conditions.");
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      return;
+    }
+
+    if (form.password.length < 8) {
+      setErrorMessage("Password must be at least 8 characters long.");
+      return;
+    }
+
     register.mutate(form, {
       onSuccess: () => {
         setSuccess(true);
         setTimeout(() => router.push("/dashboard"), 1000);
+      },
+      onError: (error: unknown) => {
+        const message =
+          error && typeof error === "object" && "response" in error
+            ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+            : "Registration failed.";
+        setErrorMessage(message || "Registration failed.");
       },
     });
   };
@@ -154,6 +178,12 @@ export default function RegisterPage() {
                   .
                 </Label>
               </div>
+
+              {errorMessage ? (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {errorMessage}
+                </div>
+              ) : null}
 
               <Button
                 type="submit"

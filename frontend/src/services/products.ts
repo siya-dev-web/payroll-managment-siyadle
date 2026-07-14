@@ -23,17 +23,30 @@ interface PayrollListResponse {
 }
 
 interface CreatePayrollPayload {
-  employee_id: number;
-  month: number;
-  year: number;
+  employeeId?: number;
+  employee_id?: number;
+  month?: number;
+  year?: number;
   bonus?: number;
   deduction?: number;
+  periodId?: number;
   status_id?: number;
 }
 
 const MONTH_NAMES = [
-  "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 function mapPayroll(raw: ApiPayroll): PayrollRecord {
@@ -54,7 +67,18 @@ export const productsService = {
 
   runPayroll: async (payload?: CreatePayrollPayload): Promise<{ message: string }> => {
     if (!payload) return { message: "Payroll processed successfully" };
-    await api.post("/payroll", payload);
+
+    const normalizedPayload = {
+      employee_id: payload.employee_id ?? payload.employeeId,
+      month: payload.month ?? new Date().getMonth() + 1,
+      year: payload.year ?? new Date().getFullYear(),
+      bonus: payload.bonus ?? 0,
+      deduction: payload.deduction ?? 0,
+      status_id: payload.status_id ?? 1,
+      ...(payload.periodId !== undefined ? { period_id: payload.periodId } : {}),
+    };
+
+    await api.post("/payroll", normalizedPayload);
     return { message: "Payroll processed successfully" };
   },
 };

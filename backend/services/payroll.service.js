@@ -1,5 +1,8 @@
 import pool from "../config/db.js";
-import { getPaginationParams, buildPaginationMeta } from "../utils/pagination.js";
+import {
+  getPaginationParams,
+  buildPaginationMeta,
+} from "../utils/pagination.js";
 
 export const payrollService = {
   /**
@@ -8,11 +11,11 @@ export const payrollService = {
   async getAll(query) {
     const { page, limit, offset, orderBy, orderDir } = getPaginationParams(
       query,
-      ["pr.id", "pr.net_salary", "pr.created_at"]
+      ["pr.id", "pr.net_salary", "pr.created_at"],
     );
 
     const [countRows] = await pool.execute(
-      "SELECT COUNT(*) AS total FROM payrolls pr"
+      "SELECT COUNT(*) AS total FROM payrolls pr",
     );
     const total = countRows[0].total;
 
@@ -37,7 +40,7 @@ export const payrollService = {
        INNER JOIN users           u   ON pr.generated_by = u.id
        ORDER BY ${orderBy} ${orderDir}
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [limit, offset],
     );
 
     return {
@@ -73,7 +76,7 @@ export const payrollService = {
        INNER JOIN payroll_status  ps  ON pr.status_id    = ps.id
        INNER JOIN users           u   ON pr.generated_by  = u.id
        WHERE pr.id = ?`,
-      [id]
+      [id],
     );
 
     if (rows.length === 0) {
@@ -90,56 +93,97 @@ export const payrollService = {
    * Net salary = base_salary + bonus - deduction.
    */
   async create(data, generatedBy) {
-    const {
-      employee_id,
-      month,
-      year,
-      bonus = 0,
-      deduction = 0,
-      status_id = 1, // default: Pending
-    } = data;
+    const employee_id = data.employee_id ?? data.employeeId;
+    const period_id = data.period_id ?? data.periodId;
+    const month = data.month ?? new Date().getMonth() + 1;
+    const year = data.year ?? new Date().getFullYear();
+    const bonus = Number(data.bonus ?? 0);
+    const deduction = Number(data.deduction ?? 0);
+    const status_id = data.status_id ?? data.statusId ?? 1;
 
-    // Verify employee exists and grab their base salary.
+    if (!employee_id) {
+      const error = new Error("Employee ID is required.");
+      error.statusCode = 400;
+      throw error;
+    }
+
     const [empRows] = await pool.execute(
       "SELECT id, base_salary FROM employees WHERE id = ?",
-      [employee_id]
+      [employee_id],
     );
     if (empRows.length === 0) {
       const error = new Error("Employee not found.");
       error.statusCode = 404;
       throw error;
     }
+
     const base_salary = empRows[0].base_salary;
 
-    // Upsert the payroll period.
-    const [periodResult] = await pool.execute(
-      `INSERT INTO payroll_periods (month, year)
-       VALUES (?, ?)
-       ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)`,
-      [month, year]
-    );
-    const period_id = periodResult.insertId;
+    let resolvedPeriodId = period_id;
 
-    // Check for duplicate payroll (one record per employee per period).
+    if (resolvedPeriodId) {
+      const [periodRows] = await pool.execute(
+        "SELECT id FROM payroll_periods WHERE id = ?",
+        [resolvedPeriodId],
+      );
+
+      if (periodRows.length === 0) {
+        if (
+          Number.isInteger(resolvedPeriodId) &&
+          resolvedPeriodId >= 1 &&
+          resolvedPeriodId <= 12
+        ) {
+          const [periodResult] = await pool.execute(
+            `INSERT INTO payroll_periods (month, year)
+             VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)`,
+            [resolvedPeriodId, year],
+          );
+          resolvedPeriodId = periodResult.insertId;
+        } else {
+          const error = new Error("Payroll period not found.");
+          error.statusCode = 404;
+          throw error;
+        }
+      }
+    } else {
+      const [periodResult] = await pool.execute(
+        `INSERT INTO payroll_periods (month, year)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)`,
+        [month, year],
+      );
+      resolvedPeriodId = periodResult.insertId;
+    }
+
     const [dup] = await pool.execute(
       "SELECT id FROM payrolls WHERE employee_id = ? AND period_id = ?",
-      [employee_id, period_id]
+      [employee_id, resolvedPeriodId],
     );
     if (dup.length > 0) {
       const error = new Error(
-        "A payroll record for this employee already exists for the selected period."
+        "A payroll record for this employee already exists for the selected period.",
       );
       error.statusCode = 409;
       throw error;
     }
 
-    const net_salary = parseFloat(base_salary) + parseFloat(bonus) - parseFloat(deduction);
+    const net_salary = parseFloat(base_salary) + bonus - deduction;
 
     const [result] = await pool.execute(
       `INSERT INTO payrolls
          (employee_id, period_id, status_id, generated_by, base_salary, bonus, deduction, net_salary)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [employee_id, period_id, status_id, generatedBy, base_salary, bonus, deduction, net_salary]
+      [
+        employee_id,
+        resolvedPeriodId,
+        status_id,
+        generatedBy,
+        base_salary,
+        bonus,
+        deduction,
+        net_salary,
+      ],
     );
 
     return this.getById(result.insertId);
@@ -151,7 +195,7 @@ export const payrollService = {
   async getHistoryByEmployee(employeeId) {
     const [empCheck] = await pool.execute(
       "SELECT id FROM employees WHERE id = ?",
-      [employeeId]
+      [employeeId],
     );
     if (empCheck.length === 0) {
       const error = new Error("Employee not found.");
@@ -177,7 +221,7 @@ export const payrollService = {
        INNER JOIN users           u   ON pr.generated_by = u.id
        WHERE pr.employee_id = ?
        ORDER BY pp.year DESC, pp.month DESC`,
-      [employeeId]
+      [employeeId],
     );
 
     return rows;
