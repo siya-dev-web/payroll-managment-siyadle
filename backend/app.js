@@ -7,7 +7,10 @@ import authRoutes from "./routes/auth.routes.js";
 import employeeRoutes from "./routes/employee.routes.js";
 import payrollRoutes from "./routes/payroll.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
-import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js";
+import {
+  errorHandler,
+  notFoundHandler,
+} from "./middleware/error.middleware.js";
 
 const app = express();
 
@@ -19,9 +22,8 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  })
+  }),
 );
-
 // ─── Request Parsing ────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -35,7 +37,11 @@ if (process.env.NODE_ENV === "development") {
 
 // ─── Health Check ───────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) => {
-  res.json({ success: true, message: "Payroll API is running.", timestamp: new Date().toISOString() });
+  res.json({
+    success: true,
+    message: "Payroll API is running.",
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // ─── Routes ─────────────────────────────────────────────────────────────────

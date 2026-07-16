@@ -2,14 +2,27 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import pool from "../config/db.js";
 import { signToken } from "../utils/jwt.js";
+import { sendPasswordResetEmail, sendVerificationEmail } from "../utils/email.js";
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || "12", 10);
+
+/**
+ * Hash a token with SHA-256 for safe database storage.
+ * The raw token is sent to the user; only the hash is stored.
+ * On verification we hash the incoming token and compare to the stored hash.
+ *
+ * @param {string} rawToken
+ * @returns {string}
+ */
+function hashToken(rawToken) {
+  return crypto.createHash("sha256").update(rawToken).digest("hex");
+}
 
 export const authService = {
   /**
    * Register a new user.
    * Hashes the password, generates a verification token, inserts the record.
-   * Returns the signed JWT and the new user's public data.
+   * Sends a verification email then returns the signed JWT and public user data.
    */
   async register(full_name, email, password) {
     const [existing] = await pool.execute(
@@ -23,21 +36,28 @@ export const authService = {
     }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-    const verificationToken = crypto.randomBytes(32).toString("hex");
+
+    // Generate raw token for the email link, store only the hash in the DB.
+    const rawVerificationToken = crypto.randomBytes(32).toString("hex");
+    const hashedVerificationToken = hashToken(rawVerificationToken);
 
     const [result] = await pool.execute(
       `INSERT INTO users (full_name, email, password, verification_token)
        VALUES (?, ?, ?, ?)`,
-      [full_name, email, hashedPassword, verificationToken]
+      [full_name, email, hashedPassword, hashedVerificationToken]
     );
 
     const userId = result.insertId;
     const token = signToken({ id: userId, email });
 
+    // Send raw token in the email link — fire and forget.
+    sendVerificationEmail(email, full_name, rawVerificationToken).catch((err) => {
+      console.error("Failed to send verification email:", err.message);
+    });
+
     return {
       token,
       user: { id: userId, full_name, email, is_verified: 0 },
-      verificationToken,
     };
   },
 
@@ -98,40 +118,56 @@ export const authService = {
   },
 
   /**
-   * Generate and store a password-reset token valid for 1 hour.
-   * Returns the raw token (caller should email it).
+   * Generate a password-reset token valid for 1 hour.
+   * Stores a SHA-256 hash of the token — never the raw value.
+   * Sends the raw token inside the email link only.
    */
   async forgotPassword(email) {
     const [rows] = await pool.execute(
-      "SELECT id FROM users WHERE email = ?",
+      "SELECT id, full_name FROM users WHERE email = ?",
       [email]
     );
 
-    // Always return success to avoid email enumeration.
+    // Always return success to prevent email enumeration attacks.
     if (rows.length === 0) return null;
 
-    const userId = rows[0].id;
-    const token = crypto.randomBytes(32).toString("hex");
+    const { id: userId, full_name } = rows[0];
+
+    // Raw token goes in the email. Hashed token goes in the database.
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = hashToken(rawToken);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    // Invalidate any previous tokens for this user.
-    await pool.execute("DELETE FROM password_resets WHERE user_id = ?", [userId]);
-
+    // Invalidate any previous reset tokens for this user.
     await pool.execute(
-      "INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)",
-      [userId, token, expiresAt]
+      "DELETE FROM password_resets WHERE user_id = ?",
+      [userId]
     );
 
-    return token;
+    // Store the hash — not the raw token.
+    await pool.execute(
+      "INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)",
+      [userId, hashedToken, expiresAt]
+    );
+
+    // Email the raw token inside the reset link — fire and forget.
+    sendPasswordResetEmail(email, full_name, rawToken).catch((err) => {
+      console.error("Failed to send password reset email:", err.message);
+    });
+
+    return null; // Never return the token to the caller
   },
 
   /**
    * Validate a reset token and update the user's password.
+   * Hashes the incoming token and looks up the hash — never the raw value.
    */
-  async resetPassword(token, newPassword) {
+  async resetPassword(rawToken, newPassword) {
+    const hashedToken = hashToken(rawToken);
+
     const [rows] = await pool.execute(
       "SELECT user_id, expires_at FROM password_resets WHERE token = ?",
-      [token]
+      [hashedToken]
     );
 
     if (rows.length === 0) {
@@ -143,7 +179,10 @@ export const authService = {
     const { user_id, expires_at } = rows[0];
 
     if (new Date() > new Date(expires_at)) {
-      await pool.execute("DELETE FROM password_resets WHERE token = ?", [token]);
+      await pool.execute(
+        "DELETE FROM password_resets WHERE token = ?",
+        [hashedToken]
+      );
       const error = new Error("Reset token has expired. Please request a new one.");
       error.statusCode = 400;
       throw error;
@@ -156,16 +195,23 @@ export const authService = {
       [hashedPassword, user_id]
     );
 
-    await pool.execute("DELETE FROM password_resets WHERE token = ?", [token]);
+    // Delete the used token so it cannot be reused.
+    await pool.execute(
+      "DELETE FROM password_resets WHERE token = ?",
+      [hashedToken]
+    );
   },
 
   /**
-   * Mark a user's email as verified using their verification token.
+   * Mark a user's email as verified.
+   * Hashes the incoming token and looks up the hash in the DB.
    */
-  async verifyEmail(token) {
+  async verifyEmail(rawToken) {
+    const hashedToken = hashToken(rawToken);
+
     const [rows] = await pool.execute(
       "SELECT id FROM users WHERE verification_token = ?",
-      [token]
+      [hashedToken]
     );
 
     if (rows.length === 0) {

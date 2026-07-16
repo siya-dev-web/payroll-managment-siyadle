@@ -12,8 +12,8 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: (credentials: AuthCredentials) => authService.login(credentials),
-    onSuccess: (data) => {
-      setAuth(data.user, data.token);
+    onSuccess: ({ user, token }) => {
+      setAuth(user, token);
       queryClient.invalidateQueries();
     },
   });
@@ -25,8 +25,8 @@ export function useRegister() {
 
   return useMutation({
     mutationFn: (data: RegisterData) => authService.register(data),
-    onSuccess: (data) => {
-      setAuth(data.user, data.token);
+    onSuccess: ({ user, token }) => {
+      setAuth(user, token);
       queryClient.invalidateQueries();
     },
   });

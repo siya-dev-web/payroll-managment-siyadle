@@ -1,179 +1,330 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
 import { APP_NAME } from "@/constants";
 import { useResetPassword } from "@/hooks/useAuth";
-import { validatePassword } from "@/utils";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 
-export default function ResetPasswordPage() {
-  const router = useRouter();
+// ─── Password strength helpers ────────────────────────────────────────────────
+
+function getStrength(password: string): { score: number; label: string; color: string } {
+  let score = 0;
+  if (password.length > 8) score += 25;
+  if (password.match(/[A-Z]/)) score += 25;
+  if (password.match(/[0-9]/)) score += 25;
+  if (password.match(/[^A-Za-z0-9]/)) score += 25;
+  if (score <= 25) return { score, label: "Weak",   color: "bg-error"   };
+  if (score <= 75) return { score, label: "Medium", color: "bg-tertiary" };
+  return              { score, label: "Strong", color: "bg-primary"  };
+}
+
+function strengthTextColor(label: string): string {
+  if (label === "Weak")   return "text-error";
+  if (label === "Medium") return "text-tertiary";
+  return "text-primary";
+}
+
+// ─── Success overlay ──────────────────────────────────────────────────────────
+
+function SuccessOverlay({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/40 backdrop-blur-sm">
+      <div className="bg-surface-container-lowest p-8 rounded-2xl shadow-2xl max-w-[360px] w-full text-center mx-4">
+        <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
+          <MaterialIcon icon="check_circle" className="text-[40px]" filled />
+        </div>
+        <h2 className="font-display-md text-display-md text-on-surface mb-2">
+          Password Updated
+        </h2>
+        <p className="font-body-md text-on-surface-variant mb-8">
+          Your password has been successfully reset. You will be redirected to the login
+          screen in 3 seconds.
+        </p>
+        <button
+          className="w-full py-3 bg-primary-container text-on-primary font-label-md rounded-[10px] hover:brightness-110 active:scale-[0.98] transition-all"
+          onClick={onClose}
+        >
+          Return to Login Now
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Inner form — must be inside Suspense because it uses useSearchParams ─────
+
+function ResetPasswordForm() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
   const resetPassword = useResetPassword();
-  const [newPassword, setNewPassword] = useState("");
+
+  // 1. Read the token from the URL query string into React state.
+  //    This is the ONLY place the token ever lives on the client.
+  const [token] = useState<string>(() => searchParams.get("token") ?? "");
+
+  const [newPassword,     setNewPassword]     = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [showNew,         setShowNew]         = useState(false);
+  const [showConfirm,     setShowConfirm]     = useState(false);
+  const [validationError, setValidationError] = useState("");
+  const [showSuccess,     setShowSuccess]     = useState(false);
 
-  const validation = validatePassword(newPassword);
-  const strength = (validation.hasLength ? 50 : 0) + (validation.hasSpecial ? 50 : 0);
+  // Token remains visible in the URL — intentional.
 
-  // Read reset token from URL: /reset-password?token=abc123
-  const searchParams = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search)
-    : null;
-  const resetToken = searchParams?.get("token") ?? "";
+  // 3. Show an error immediately if the page was opened without a token
+  //    (e.g. someone navigated to /reset-password directly).
+  useEffect(() => {
+    if (!token) {
+      setValidationError(
+        "No reset token found. Please use the link from your email.",
+      );
+    }
+  }, [token]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const strength = getStrength(newPassword);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) return;
+    setValidationError("");
+
+    if (!token) {
+      setValidationError("No reset token found. Please use the link from your email.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setValidationError("Password must be at least 8 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setValidationError("Passwords do not match.");
+      return;
+    }
+
+    // 4. Submit — token comes from React state, never from a visible input.
     resetPassword.mutate(
-      { token: resetToken, password: newPassword },
+      { token, password: newPassword },
       {
         onSuccess: () => {
-          setSuccess(true);
-          setTimeout(() => router.push("/login"), 2000);
+          setShowSuccess(true);
+          setTimeout(() => router.push("/login"), 3000);
+        },
+        onError: (err: unknown) => {
+          const message =
+            err instanceof Error
+              ? err.message
+              : "Token is invalid or has expired. Please request a new one.";
+          setValidationError(message);
         },
       },
     );
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-gutter bg-[#f8fafc]">
-      <main className="w-full max-w-[440px]">
+    <>
+      {showSuccess && <SuccessOverlay onClose={() => router.push("/login")} />}
+
+      {/* Background blobs */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-secondary/5 blur-3xl" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-[440px]">
+
+        {/* Brand */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
-            <MaterialIcon icon="payments" className="text-white text-3xl" filled />
+            <MaterialIcon icon="payments" className="text-on-primary text-display-md" filled />
           </div>
           <h1 className="font-display-md text-display-md text-on-surface tracking-tight">
             {APP_NAME}
           </h1>
-          <p className="font-body-md text-on-surface-variant/70 mt-1 text-center">
-            Secure Enterprise Access Control
+          <p className="font-body-md text-on-surface-variant mt-1 text-center px-6">
+            Choose a new password for your account.
           </p>
         </div>
 
-        <div className="auth-card p-8">
-          <div className="mb-6">
-            <h2 className="font-headline-sm text-headline-sm text-on-surface">Reset Password</h2>
-            <p className="font-body-md text-on-surface-variant mt-1">
-              Please enter your new password to regain access to your administrator account.
-            </p>
-          </div>
+        {/* Card */}
+        <div className="auth-card bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+          <div className="p-8">
+            <div className="mb-6">
+              <h2 className="font-headline-sm text-headline-sm text-on-surface">
+                Reset Password
+              </h2>
+              <p className="font-body-md text-on-surface-variant mt-1">
+                Enter and confirm your new password below.
+              </p>
+            </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-1">
-              <label className="font-label-md text-on-surface-variant" htmlFor="newPassword">
-                New Password
-              </label>
-              <div className="relative">
-                <MaterialIcon
-                  icon="lock"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-outline"
-                />
-                <input
-                  className="w-full pl-10 pr-12 py-3 bg-white border border-outline-variant rounded-[10px] font-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                  id="newPassword"
-                  placeholder="Min. 8 characters"
-                  required
-                  type={showNew ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <button
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant hover:text-on-surface-variant p-1"
-                  onClick={() => setShowNew(!showNew)}
-                  type="button"
-                >
-                  <MaterialIcon icon={showNew ? "visibility_off" : "visibility"} className="text-[20px]" />
-                </button>
-              </div>
-              <div className="flex gap-1 mt-1 px-1">
-                <div className="h-1 flex-1 bg-surface-variant rounded-full overflow-hidden">
+            <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+
+              {/* ── New Password ── */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <label
+                    className="font-label-md text-label-md text-on-surface-variant"
+                    htmlFor="newPassword"
+                  >
+                    New Password
+                  </label>
+                  {newPassword && (
+                    <span className={`font-label-sm text-label-sm ${strengthTextColor(strength.label)}`}>
+                      {strength.label}
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <MaterialIcon
+                    icon="lock"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]"
+                  />
+                  <input
+                    className="w-full pl-10 pr-12 py-3 bg-surface border border-outline-variant rounded-[10px] font-body-md text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                    id="newPassword"
+                    placeholder="Min. 8 characters"
+                    required
+                    type={showNew ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => { setNewPassword(e.target.value); setValidationError(""); }}
+                  />
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors"
+                    onClick={() => setShowNew((s) => !s)}
+                    type="button"
+                    aria-label={showNew ? "Hide password" : "Show password"}
+                  >
+                    <MaterialIcon icon={showNew ? "visibility_off" : "visibility"} className="text-[20px]" />
+                  </button>
+                </div>
+                {/* Strength bar */}
+                <div className="h-1 w-full bg-surface-container rounded-full mt-1 overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-500 ${strength === 100 ? "bg-primary" : "bg-error"}`}
-                    style={{ width: `${strength}%` }}
+                    className={`h-full transition-all duration-500 ${strength.color}`}
+                    style={{ width: `${strength.score}%` }}
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-1">
-              <label className="font-label-md text-on-surface-variant" htmlFor="confirmPassword">
-                Confirm New Password
-              </label>
-              <div className="relative">
-                <MaterialIcon
-                  icon="verified_user"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-outline"
-                />
-                <input
-                  className="w-full pl-10 pr-12 py-3 bg-white border border-outline-variant rounded-[10px] font-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                  id="confirmPassword"
-                  placeholder="Repeat your password"
-                  required
-                  type={showConfirm ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-                <button
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant hover:text-on-surface-variant p-1"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  type="button"
+              {/* ── Confirm Password ── */}
+              <div className="space-y-1">
+                <label
+                  className="font-label-md text-label-md text-on-surface-variant"
+                  htmlFor="confirmPassword"
                 >
-                  <MaterialIcon icon={showConfirm ? "visibility_off" : "visibility"} className="text-[20px]" />
-                </button>
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <MaterialIcon
+                    icon="verified_user"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]"
+                  />
+                  <input
+                    className="w-full pl-10 pr-12 py-3 bg-surface border border-outline-variant rounded-[10px] font-body-md text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                    id="confirmPassword"
+                    placeholder="Repeat your new password"
+                    required
+                    type={showConfirm ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setValidationError(""); }}
+                  />
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors"
+                    onClick={() => setShowConfirm((s) => !s)}
+                    type="button"
+                    aria-label={showConfirm ? "Hide password" : "Show password"}
+                  >
+                    <MaterialIcon icon={showConfirm ? "visibility_off" : "visibility"} className="text-[20px]" />
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <ul className="space-y-1 text-label-sm font-label-sm text-on-surface-variant/60">
-              <li className={`flex items-center gap-2 ${validation.hasLength ? "text-primary" : ""}`}>
-                <MaterialIcon icon={validation.hasLength ? "check_circle" : "circle"} className="text-[14px]" />
-                At least 8 characters long
-              </li>
-              <li className={`flex items-center gap-2 ${validation.hasSpecial ? "text-primary" : ""}`}>
-                <MaterialIcon icon={validation.hasSpecial ? "check_circle" : "circle"} className="text-[14px]" />
-                Contains a special character or number
-              </li>
-            </ul>
-
-            <button
-              className={`w-full py-3 px-6 font-label-md rounded-[10px] shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 ${success ? "bg-tertiary-container text-on-tertiary-container" : "bg-[#2563eb] text-white hover:bg-primary-container"}`}
-              type="submit"
-              disabled={resetPassword.isPending || success}
-            >
-              {resetPassword.isPending ? (
-                <>
-                  <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-                  <span>Updating...</span>
-                </>
-              ) : success ? (
-                <>
-                  <MaterialIcon icon="check_circle" />
-                  <span>Success! Redirecting...</span>
-                </>
-              ) : (
-                <>
-                  <span>Reset Password</span>
-                  <MaterialIcon icon="arrow_forward" className="text-[18px]" />
-                </>
+              {/* ── Validation error ── */}
+              {validationError && (
+                <div className="flex items-start gap-2 p-3 bg-error-container/30 border border-error/20 rounded-lg">
+                  <MaterialIcon icon="error" className="text-error text-[20px] shrink-0 mt-0.5" />
+                  <p className="font-body-md text-on-error-container">{validationError}</p>
+                </div>
               )}
-            </button>
 
-            <div className="text-center mt-4">
-              <Link
-                className="font-label-sm text-primary hover:underline flex items-center justify-center gap-1"
-                href="/login"
+              {/* ── Requirements checklist ── */}
+              <ul className="space-y-1 text-label-sm font-label-sm text-on-surface-variant/60">
+                <li className={`flex items-center gap-2 transition-colors ${newPassword.length >= 8 ? "text-primary" : ""}`}>
+                  <MaterialIcon icon={newPassword.length >= 8 ? "check_circle" : "circle"} className="text-[14px]" filled={newPassword.length >= 8} />
+                  At least 8 characters long
+                </li>
+                <li className={`flex items-center gap-2 transition-colors ${/[A-Z]/.test(newPassword) ? "text-primary" : ""}`}>
+                  <MaterialIcon icon={/[A-Z]/.test(newPassword) ? "check_circle" : "circle"} className="text-[14px]" filled={/[A-Z]/.test(newPassword)} />
+                  Contains at least one uppercase letter
+                </li>
+                <li className={`flex items-center gap-2 transition-colors ${/[0-9]/.test(newPassword) ? "text-primary" : ""}`}>
+                  <MaterialIcon icon={/[0-9]/.test(newPassword) ? "check_circle" : "circle"} className="text-[14px]" filled={/[0-9]/.test(newPassword)} />
+                  Contains at least one number
+                </li>
+              </ul>
+
+              {/* ── Submit ── */}
+              <button
+                className="w-full py-3.5 bg-primary-container text-on-primary font-label-md rounded-[10px] flex items-center justify-center gap-2 hover:bg-primary active:scale-[0.98] transition-all shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                type="submit"
+                disabled={resetPassword.isPending || !token}
               >
-                <MaterialIcon icon="arrow_back" className="text-[14px]" />
+                {resetPassword.isPending ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Reset Password</span>
+                    <MaterialIcon icon="arrow_forward" className="text-[18px]" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Back to login */}
+            <div className="mt-8 flex flex-col items-center pt-8 border-t border-outline-variant">
+              <Link
+                href="/login"
+                className="group flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors font-label-md"
+              >
+                <MaterialIcon icon="arrow_back" className="text-[18px] group-hover:-translate-x-1 transition-transform" />
                 Back to Login
               </Link>
             </div>
-          </form>
+          </div>
         </div>
-      </main>
+
+        {/* Footer */}
+        <div className="mt-8 flex justify-between items-center px-4 text-on-surface-variant/60 font-label-sm">
+          <p>© 2024 {APP_NAME}</p>
+          <div className="flex gap-6">
+            <a href="#" className="hover:text-primary underline decoration-transparent hover:decoration-primary transition-all">Support</a>
+            <a href="#" className="hover:text-primary underline decoration-transparent hover:decoration-primary transition-all">Privacy</a>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Page export ──────────────────────────────────────────────────────────────
+
+export default function ResetPasswordPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#f8fafc]">
+      <Suspense
+        fallback={
+          <div className="flex items-center gap-2 text-on-surface-variant font-body-md">
+            <span className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            Loading...
+          </div>
+        }
+      >
+        <ResetPasswordForm />
+      </Suspense>
     </div>
   );
 }

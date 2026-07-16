@@ -5,13 +5,13 @@ interface AuthResponse {
   success: boolean;
   message: string;
   data: {
-    token: string;
     user: {
       id: number;
       full_name: string;
       email: string;
       is_verified: number;
     };
+    token: string;
   };
 }
 
@@ -41,7 +41,11 @@ export const authService = {
       email: credentials.email,
       password: credentials.password,
     });
-    return { user: mapUser(data.data.user), token: data.data.token };
+
+    return {
+      user: mapUser(data.data.user),
+      token: data.data.token,
+    };
   },
 
   register: async (formData: RegisterData): Promise<{ user: User; token: string }> => {
@@ -51,7 +55,11 @@ export const authService = {
       password: formData.password,
       confirmPassword: formData.confirmPassword,
     });
-    return { user: mapUser(data.data.user), token: data.data.token };
+
+    return {
+      user: mapUser(data.data.user),
+      token: data.data.token,
+    };
   },
 
   getMe: async (): Promise<User> => {
@@ -81,6 +89,6 @@ export const authService = {
   },
 
   logout: async (): Promise<void> => {
-    // JWT is stateless — just clear client-side token (no server endpoint needed)
+    // JWT is stateless — no server endpoint needed. Token is cleared client-side.
   },
 };

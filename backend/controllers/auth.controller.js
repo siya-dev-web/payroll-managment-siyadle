@@ -7,10 +7,14 @@ export const authController = {
       const { full_name, email, password } = req.body;
       const result = await authService.register(full_name, email, password);
 
-      return sendSuccess(res, 201, "Registration successful. Please verify your email.", {
-        token: result.token,
-        user: result.user,
-      });
+      return sendSuccess(
+        res,
+        201,
+        "Registration successful. Please verify your email.",
+        {
+          user: result.user,
+        },
+      );
     } catch (err) {
       return next(err);
     }
@@ -21,7 +25,18 @@ export const authController = {
       const { email, password } = req.body;
       const result = await authService.login(email, password);
 
-      return sendSuccess(res, 200, "Login successful.", result);
+      return sendSuccess(res, 200, "Login successful.", {
+        user: result.user,
+        token: result.token,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+
+  async logout(req, res, next) {
+    try {
+      return sendSuccess(res, 200, "Logout successful.");
     } catch (err) {
       return next(err);
     }
@@ -45,7 +60,7 @@ export const authController = {
       return sendSuccess(
         res,
         200,
-        "If that email is registered, a reset link has been sent."
+        "If that email is registered, a reset link has been sent.",
       );
     } catch (err) {
       return next(err);
@@ -57,7 +72,11 @@ export const authController = {
       const { token, password } = req.body;
       await authService.resetPassword(token, password);
 
-      return sendSuccess(res, 200, "Password reset successfully. You can now log in.");
+      return sendSuccess(
+        res,
+        200,
+        "Password reset successfully. You can now log in.",
+      );
     } catch (err) {
       return next(err);
     }
