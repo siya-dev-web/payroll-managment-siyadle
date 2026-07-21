@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { extractApiError } from "@/utils";
 import {
   Wallet,
   User,
@@ -60,11 +60,7 @@ export default function RegisterPage() {
         setTimeout(() => router.push("/dashboard"), 1000);
       },
       onError: (error: unknown) => {
-        const message =
-          error && typeof error === "object" && "response" in error
-            ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
-            : "Registration failed.";
-        setErrorMessage(message || "Registration failed.");
+        setErrorMessage(extractApiError(error));
       },
     });
   };

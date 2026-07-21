@@ -1,10 +1,10 @@
 "use client";
-
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { APP_NAME, HERO_IMAGE } from "@/constants";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import { useAuthStore } from "@/store/authStore";
 
 const features = [
   {
@@ -62,6 +62,8 @@ const testimonials = [
 
 export default function LandingPage() {
   const [navShadow, setNavShadow] = useState(false);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     const handleScroll = () => setNavShadow(window.scrollY > 50);
@@ -94,19 +96,38 @@ export default function LandingPage() {
               </a>
             ))}
           </div>
-          <div className="flex gap-2">
-            <Link
-              href="/login"
-              className="px-6 py-3 font-semibold text-[#1e293b] bg-white border border-[#e2e8f0] rounded-[10px] hover:bg-[#f8fafc] transition-all"
-            >
-              Login
-            </Link>
-            <Link
-              href="/register"
-              className="px-6 py-3 font-semibold text-white bg-[#2563eb] rounded-[10px] hover:bg-[#1d4ed8] hover:-translate-y-px transition-all shadow-md"
-            >
-              Register
-            </Link>
+
+          {/* Navbar buttons — change based on login state */}
+          <div className="flex items-center gap-2">
+            {isAuthenticated ? (
+              <>
+                <span className="hidden md:block text-sm font-medium text-[#64748b] mr-1">
+                  Hi, {user?.name?.split(" ")[0]}
+                </span>
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 px-6 py-3 font-semibold text-white bg-[#2563eb] rounded-[10px] hover:bg-[#1d4ed8] hover:-translate-y-px transition-all shadow-md"
+                >
+                  <MaterialIcon icon="dashboard" className="text-[18px]" />
+                  Go to Dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="px-6 py-3 font-semibold text-[#1e293b] bg-white border border-[#e2e8f0] rounded-[10px] hover:bg-[#f8fafc] transition-all"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-6 py-3 font-semibold text-white bg-[#2563eb] rounded-[10px] hover:bg-[#1d4ed8] hover:-translate-y-px transition-all shadow-md"
+                >
+                  Register
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -119,17 +140,26 @@ export default function LandingPage() {
                 Streamline Your <span className="text-[#2563eb]">Payroll</span> Management
               </h1>
               <p className="text-lg text-[#64748b] mb-10 max-w-lg">
-                The enterprise-grade solution for modern HR teams. Automate tax compliance,
-                manage employee payments, and gain actionable financial insights in one unified
-                dashboard.
+                The enterprise-grade solution for modern HR teams. Automate tax compliance, manage
+                employee payments, and gain actionable financial insights in one unified dashboard.
               </p>
               <div className="flex gap-3">
-                <Link
-                  href="/register"
-                  className="px-8 py-4 font-semibold text-white bg-[#2563eb] rounded-[10px] hover:bg-[#1d4ed8] transition-all"
-                >
-                  Get Started Now
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2 px-8 py-4 font-semibold text-white bg-[#2563eb] rounded-[10px] hover:bg-[#1d4ed8] transition-all"
+                  >
+                    <MaterialIcon icon="dashboard" className="text-[18px]" />
+                    Go to Dashboard
+                  </Link>
+                ) : (
+                  <Link
+                    href="/register"
+                    className="px-8 py-4 font-semibold text-white bg-[#2563eb] rounded-[10px] hover:bg-[#1d4ed8] transition-all"
+                  >
+                    Get Started Now
+                  </Link>
+                )}
                 <button className="px-8 py-4 font-semibold text-[#1e293b] bg-white border border-[#e2e8f0] rounded-[10px] hover:bg-[#f8fafc] transition-all">
                   View Demo
                 </button>
@@ -199,16 +229,13 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Trusted by HR Leaders</h2>
             <p className="text-[#64748b] max-w-xl mx-auto">
-              Join thousands of specialists who have transformed their administrative workflows
-              with {APP_NAME}.
+              Join thousands of specialists who have transformed their administrative workflows with{" "}
+              {APP_NAME}.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t) => (
-              <div
-                key={t.name}
-                className="bg-white border border-[#e2e8f0] rounded-xl p-8"
-              >
+              <div key={t.name} className="bg-white border border-[#e2e8f0] rounded-xl p-8">
                 <p className="mb-6 font-medium">&ldquo;{t.quote}&rdquo;</p>
                 <div className="flex items-center">
                   <Image
@@ -237,12 +264,22 @@ export default function LandingPage() {
               Start your 30-day free trial today. No credit card required. Cancel anytime.
             </p>
             <div className="flex justify-center gap-4 flex-wrap">
-              <Link
-                href="/register"
-                className="px-10 py-4 font-semibold text-white bg-[#2563eb] rounded-[10px] hover:bg-[#1d4ed8] transition-all"
-              >
-                Start Free Trial
-              </Link>
+              {isAuthenticated ? (
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 px-10 py-4 font-semibold text-white bg-[#2563eb] rounded-[10px] hover:bg-[#1d4ed8] transition-all"
+                >
+                  <MaterialIcon icon="dashboard" className="text-[18px]" />
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <Link
+                  href="/register"
+                  className="px-10 py-4 font-semibold text-white bg-[#2563eb] rounded-[10px] hover:bg-[#1d4ed8] transition-all"
+                >
+                  Start Free Trial
+                </Link>
+              )}
               <button className="px-10 py-4 font-semibold text-white border border-white/30 rounded-[10px] hover:bg-white/10 transition-all">
                 Contact Sales
               </button>
@@ -266,7 +303,10 @@ export default function LandingPage() {
             {[
               { title: "Product", links: ["Features", "Security", "Integrations", "Enterprise"] },
               { title: "Company", links: ["About Us", "Careers", "Blog", "Press"] },
-              { title: "Resources", links: ["Help Center", "Documentation", "Community", "Status"] },
+              {
+                title: "Resources",
+                links: ["Help Center", "Documentation", "Community", "Status"],
+              },
             ].map((col) => (
               <div key={col.title}>
                 <h6 className="font-bold mb-4">{col.title}</h6>

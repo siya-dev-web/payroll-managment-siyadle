@@ -8,6 +8,7 @@ import { FormField } from "@/components/forms/FormField";
 import { Toast } from "@/components/ui/Toast";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import { useCreateEmployee } from "@/hooks/useEmployees";
+import { extractApiError } from "@/utils";
 
 const STEPS = [
   { label: "Personal" },
@@ -16,17 +17,14 @@ const STEPS = [
 ];
 
 interface EmployeeForm {
-  // Step 1: Personal
   fullName: string;
   email: string;
   phone: string;
   dateOfBirth: string;
-  // Step 2: Employment
   department: string;
   jobTitle: string;
   employmentType: string;
   joinDate: string;
-  // Step 3: Payroll
   annualSalary: string;
   taxId: string;
   bankName: string;
@@ -51,12 +49,17 @@ export default function AddEmployeePage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<EmployeeForm>(INITIAL_FORM);
   const [showToast, setShowToast] = useState(false);
+  const [apiError, setApiError] = useState<string>("");
 
-  const update = (field: keyof EmployeeForm, value: string) =>
+  const update = (field: keyof EmployeeForm, value: string) => {
+    setApiError(""); // clear error when user edits any field
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError("");
+
     createEmployee.mutate(
       {
         name: form.fullName,
@@ -74,23 +77,62 @@ export default function AddEmployeePage() {
           setShowToast(true);
           setTimeout(() => router.push("/employees"), 3000);
         },
+        onError: (error: unknown) => {
+          const message = extractApiError(error);
+          setApiError(message);
+          // Scroll to top of form so user sees the error
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        },
       },
     );
   };
 
   return (
     <>
-      <DashboardHeader title="Payroll Management" subtitle="Add New Employee" showSearch={false} />
+      <DashboardHeader
+        title="Payroll Management"
+        subtitle="Add New Employee"
+        showSearch={false}
+      />
       <main className="ml-0 min-h-[calc(100vh-64px)] p-gutter max-w-4xl mx-auto">
         <Stepper steps={STEPS} currentStep={step} />
 
+        {/* ── API Error Banner ── */}
+        {apiError && (
+          <div className="mb-6 flex items-start gap-3 p-4 bg-error-container/30 border border-error/30 rounded-xl">
+            <MaterialIcon
+              icon="error"
+              className="text-error text-[22px] shrink-0 mt-0.5"
+            />
+            <div className="flex-1">
+              <p className="font-label-md text-on-error-container font-semibold mb-1">
+                Could not save employee
+              </p>
+              <p className="font-body-md text-on-error-container">
+                {apiError}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setApiError("")}
+              className="text-error hover:text-on-error-container transition-colors shrink-0"
+              aria-label="Dismiss error"
+            >
+              <MaterialIcon icon="close" className="text-[18px]" />
+            </button>
+          </div>
+        )}
+
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
           <form className="p-8" onSubmit={handleSubmit}>
-            {/* Step 1: Personal Information */}
+
+            {/* ── Step 1: Personal Information ── */}
             {step === 1 && (
               <section className="space-y-6">
                 <div className="border-b border-outline-variant pb-4 mb-6">
-                  <h3 className="font-display-md text-display-md text-on-surface">Personal Information</h3>
+                  <h3 className="font-display-md text-display-md text-on-surface">
+                    Personal Information
+                  </h3>
                   <p className="text-on-surface-variant font-body-md">
                     Provide the basic contact and identity details for the new staff member.
                   </p>
@@ -141,11 +183,13 @@ export default function AddEmployeePage() {
               </section>
             )}
 
-            {/* Step 2: Employment Details */}
+            {/* ── Step 2: Employment Details ── */}
             {step === 2 && (
               <section className="space-y-6">
                 <div className="border-b border-outline-variant pb-4 mb-6">
-                  <h3 className="font-display-md text-display-md text-on-surface">Employment Details</h3>
+                  <h3 className="font-display-md text-display-md text-on-surface">
+                    Employment Details
+                  </h3>
                   <p className="text-on-surface-variant font-body-md">
                     Specify the role, department, and contractual status within the organization.
                   </p>
@@ -199,11 +243,13 @@ export default function AddEmployeePage() {
               </section>
             )}
 
-            {/* Step 3: Payroll Information */}
+            {/* ── Step 3: Payroll Information ── */}
             {step === 3 && (
               <section className="space-y-6">
                 <div className="border-b border-outline-variant pb-4 mb-6">
-                  <h3 className="font-display-md text-display-md text-on-surface">Payroll Information</h3>
+                  <h3 className="font-display-md text-display-md text-on-surface">
+                    Payroll Information
+                  </h3>
                   <p className="text-on-surface-variant font-body-md">
                     Configure financial parameters and disbursement details.
                   </p>
@@ -212,7 +258,9 @@ export default function AddEmployeePage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField label="Annual Gross Salary" id="annualSalary">
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">$</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
+                          $
+                        </span>
                         <input
                           className="w-full pl-8 pr-4 py-3 rounded-[10px] border border-outline-variant focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                           id="annualSalary"
@@ -241,7 +289,10 @@ export default function AddEmployeePage() {
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="block font-label-sm text-on-surface-variant" htmlFor="bankName">
+                        <label
+                          className="block font-label-sm text-on-surface-variant"
+                          htmlFor="bankName"
+                        >
                           Bank Name
                         </label>
                         <input
@@ -254,7 +305,10 @@ export default function AddEmployeePage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="block font-label-sm text-on-surface-variant" htmlFor="accountNumber">
+                        <label
+                          className="block font-label-sm text-on-surface-variant"
+                          htmlFor="accountNumber"
+                        >
                           Account Number
                         </label>
                         <input
@@ -272,7 +326,7 @@ export default function AddEmployeePage() {
               </section>
             )}
 
-            {/* Form Controls */}
+            {/* ── Form Controls ── */}
             <div className="mt-10 pt-6 border-t border-outline-variant flex justify-between items-center">
               <div className="flex gap-2">
                 {step > 1 && (
@@ -309,11 +363,18 @@ export default function AddEmployeePage() {
                 )}
                 {step === 3 && (
                   <button
-                    className="px-8 py-2.5 rounded-[10px] bg-primary text-on-primary font-label-md hover:brightness-110 shadow-sm active:scale-95 transition-all disabled:opacity-70"
+                    className="px-8 py-2.5 rounded-[10px] bg-primary text-on-primary font-label-md hover:brightness-110 shadow-sm active:scale-95 transition-all disabled:opacity-70 flex items-center gap-2"
                     type="submit"
                     disabled={createEmployee.isPending}
                   >
-                    {createEmployee.isPending ? "Saving..." : "Save Employee"}
+                    {createEmployee.isPending ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Employee"
+                    )}
                   </button>
                 )}
               </div>

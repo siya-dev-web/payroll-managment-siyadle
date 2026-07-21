@@ -14,12 +14,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError("");
     login.mutate(
       { email, password, remember },
-      { onSuccess: () => router.push("/dashboard") },
+      {
+        onSuccess: () => router.push("/dashboard"),
+        onError: (error: unknown) => {
+          const message =
+            error &&
+            typeof error === "object" &&
+            "response" in error
+              ? ((error as { response?: { data?: { message?: string } } }).response?.data?.message ?? "Login failed. Please check your credentials.")
+              : "Login failed. Please check your credentials.";
+          setApiError(message);
+        },
+      },
     );
   };
 
@@ -116,6 +129,21 @@ export default function LoginPage() {
                 Remember me for 30 days
               </label>
             </div>
+
+            {/* Error banner */}
+            {apiError && (
+              <div className="flex items-start gap-2 p-3 bg-error-container/30 border border-error/30 rounded-lg">
+                <MaterialIcon icon="error" className="text-error text-[20px] shrink-0 mt-0.5" />
+                <p className="font-body-md text-on-error-container flex-1">{apiError}</p>
+                <button
+                  type="button"
+                  onClick={() => setApiError("")}
+                  className="text-error hover:opacity-70 shrink-0"
+                >
+                  <MaterialIcon icon="close" className="text-[16px]" />
+                </button>
+              </div>
+            )}
 
             <button
               className="w-full bg-[#2563eb] text-white py-3.5 rounded-lg font-label-md hover:bg-blue-700 active:scale-[0.98] transition-all duration-200 shadow-md shadow-blue-500/10 mt-2 flex items-center justify-center gap-2 disabled:opacity-70"

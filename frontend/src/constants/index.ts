@@ -19,7 +19,7 @@ export const DEPARTMENTS = [
 export const EMPLOYEE_STATUSES = ["All Status", "Active", "On Leave", "Terminated"] as const;
 
 export const DEFAULT_USER = {
-  name: "Alex Rivera",
+  name: "Siyadle Dubale",
   role: "Admin User",
   avatar:
     "https://lh3.googleusercontent.com/aida-public/AB6AXuAmUcV1TwFj11aKDykuMpw6xQXLd1E3HCIdH4dfSeINckatez8xwWKDKDeYCXFCMSKKyPVxBaPDK8NX_AHmmN4pNIHVzpfCw2GqK03sPKzQE1hddHQMQXW7BgLRlq1b595OHjqD1rBHRZ6hy3WCwIbWUdaDonSwkIkEW36LIDOTa-UCgTTti7Ex_a-xgat1CGfVYNriE8aeHtDg7bLr-LqwfhJAmXwXuMPR_bRD12-arl9m8twzdtUUL1ExPaGuSbAQFAxv0qdjPHM",

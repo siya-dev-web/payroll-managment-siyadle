@@ -8,35 +8,8 @@ import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import { usePayrollRuns } from "@/hooks/usePayroll";
 import { formatCurrency } from "@/utils";
 
-const PAYROLL_RUNS = [
-  {
-    id: "PR-2024-10-A",
-    description: "October Mid-Month Full-Time",
-    payDate: "Oct 15, 2024",
-    employees: 182,
-    total: 428540,
-    status: "Processing",
-  },
-  {
-    id: "PR-2024-09-B",
-    description: "September End-Month Contractor",
-    payDate: "Sep 30, 2024",
-    employees: 45,
-    total: 89200,
-    status: "Paid",
-  },
-  {
-    id: "PR-2024-Q3-BON",
-    description: "Q3 Performance Bonuses",
-    payDate: "Oct 25, 2024",
-    employees: 60,
-    total: 150000,
-    status: "Draft",
-  },
-];
-
 export default function PayrollDashboardPage() {
-  const { isLoading } = usePayrollRuns();
+  const { data: payrollRuns = [], isLoading } = usePayrollRuns();
 
   return (
     <>
@@ -170,7 +143,7 @@ export default function PayrollDashboardPage() {
             </div>
           </div>
 
-          {/* Active Runs Table */}
+          {/* Active Runs Table — data from API */}
           <div className="lg:col-span-2 bg-white rounded-xl border border-outline-variant card-shadow overflow-hidden">
             <div className="p-6 border-b border-outline-variant flex justify-between items-center">
               <h4 className="font-headline-sm text-on-surface">Active Payroll Runs</h4>
@@ -186,10 +159,9 @@ export default function PayrollDashboardPage() {
                   <thead className="bg-surface-container-low text-on-surface-variant uppercase text-label-sm font-label-sm">
                     <tr>
                       {[
-                        "ID / Description",
-                        "Pay Date",
-                        "Employees",
-                        "Total Value",
+                        "Employee",
+                        "Period",
+                        "Net Pay",
                         "Status",
                         "",
                       ].map((h) => (
@@ -200,31 +172,40 @@ export default function PayrollDashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant">
-                    {PAYROLL_RUNS.map((run) => (
-                      <tr
-                        key={run.id}
-                        className="hover:bg-surface-container-low transition-colors group"
-                      >
-                        <td className="px-6 py-4">
-                          <p className="font-label-md text-on-surface">{run.id}</p>
-                          <p className="font-label-sm text-on-surface-variant">{run.description}</p>
-                        </td>
-                        <td className="px-6 py-4 font-body-md text-on-surface">{run.payDate}</td>
-                        <td className="px-6 py-4 font-body-md text-on-surface">{run.employees}</td>
-                        <td className="px-6 py-4 font-label-md text-on-surface">
-                          {formatCurrency(run.total)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <StatusBadge status={run.status} />
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <MaterialIcon
-                            icon="chevron_right"
-                            className="text-outline group-hover:text-primary transition-colors"
-                          />
+                    {payrollRuns.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-6 py-10 text-center text-on-surface-variant font-body-md"
+                        >
+                          No payroll records yet. Run payroll to see records here.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      payrollRuns.map((run) => (
+                        <tr
+                          key={run.id}
+                          className="hover:bg-surface-container-low transition-colors group"
+                        >
+                          <td className="px-6 py-4">
+                            <p className="font-label-md text-on-surface">{run.employeeName}</p>
+                          </td>
+                          <td className="px-6 py-4 font-body-md text-on-surface">{run.period}</td>
+                          <td className="px-6 py-4 font-label-md text-on-surface">
+                            {formatCurrency(run.amount)}
+                          </td>
+                          <td className="px-6 py-4">
+                            <StatusBadge status={run.status} />
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <MaterialIcon
+                              icon="chevron_right"
+                              className="text-outline group-hover:text-primary transition-colors"
+                            />
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
