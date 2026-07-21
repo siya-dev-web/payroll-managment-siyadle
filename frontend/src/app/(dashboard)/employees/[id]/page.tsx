@@ -13,15 +13,15 @@ import { useEmployee, useUpdateEmployee } from "@/hooks/useEmployees";
 import { formatCurrency } from "@/utils";
 
 const TABS = [
-  { id: "overview", label: "Overview",       icon: "overview"     },
-  { id: "payroll",  label: "Payroll History", icon: "history"      },
-  { id: "documents",label: "Documents",       icon: "description"  },
-  { id: "settings", label: "Settings",        icon: "settings"     },
+  { id: "overview", label: "Overview", icon: "overview" },
+  { id: "payroll", label: "Payroll History", icon: "history" },
+  { id: "documents", label: "Documents", icon: "description" },
+  { id: "settings", label: "Settings", icon: "settings" },
 ];
 
 const MOCK_DOCUMENTS = [
-  { name: "W-2 Tax Form 2023",     type: "PDF",  size: "1.2 MB", date: "Feb 15"        },
-  { name: "Employment Agreement",  type: "DOCX", size: "0.8 MB", date: "Jan 12, 2021"  },
+  { name: "W-2 Tax Form 2023", type: "PDF", size: "1.2 MB", date: "Feb 15" },
+  { name: "Employment Agreement", type: "DOCX", size: "0.8 MB", date: "Jan 12, 2021" },
 ];
 
 const INPUT_CLASS =
@@ -34,14 +34,14 @@ const SELECT_CLASS =
 
 interface EditForm {
   first_name: string;
-  last_name:  string;
-  email:      string;
-  phone:      string;
-  hire_date:  string;
-  base_salary:string;
+  last_name: string;
+  email: string;
+  phone: string;
+  hire_date: string;
+  base_salary: string;
   department_id: number;
-  position_id:   number;
-  status_id:     number;
+  position_id: number;
+  status_id: number;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -52,35 +52,35 @@ export default function EmployeeDetailPage() {
   const updateEmployee = useUpdateEmployee();
 
   const [activeTab, setActiveTab] = useState("overview");
-  const [isEditing,  setIsEditing]  = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", isError: false });
 
   // Build edit form from current employee data when editing starts
   const [editForm, setEditForm] = useState<EditForm>({
-    first_name:    "",
-    last_name:     "",
-    email:         "",
-    phone:         "",
-    hire_date:     "",
-    base_salary:   "",
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    hire_date: "",
+    base_salary: "",
     department_id: 1,
-    position_id:   1,
-    status_id:     1,
+    position_id: 1,
+    status_id: 1,
   });
 
   const startEditing = () => {
     if (!employee) return;
     const [first, ...rest] = employee.name.split(" ");
     setEditForm({
-      first_name:    first ?? "",
-      last_name:     rest.join(" "),
-      email:         employee.email,
-      phone:         employee.phone ?? "",
-      hire_date:     employee.joinDate ?? "",
-      base_salary:   String(employee.salary ?? ""),
+      first_name: first ?? "",
+      last_name: rest.join(" "),
+      email: employee.email,
+      phone: employee.phone ?? "",
+      hire_date: employee.joinDate ?? "",
+      base_salary: String(employee.salary ?? ""),
       department_id: 1,
-      position_id:   1,
-      status_id:     employee.status === "Active" ? 1 : employee.status === "Inactive" ? 2 : 3,
+      position_id: 1,
+      status_id: employee.status === "Active" ? 1 : employee.status === "On Leave" ? 2 : 3,
     });
     setIsEditing(true);
   };
@@ -91,15 +91,15 @@ export default function EmployeeDetailPage() {
       {
         id,
         updates: {
-          first_name:    editForm.first_name,
-          last_name:     editForm.last_name,
-          email:         editForm.email,
-          phone:         editForm.phone || undefined,
-          hire_date:     editForm.hire_date || undefined,
-          base_salary:   parseFloat(editForm.base_salary) || undefined,
+          first_name: editForm.first_name,
+          last_name: editForm.last_name,
+          email: editForm.email,
+          phone: editForm.phone || undefined,
+          hire_date: editForm.hire_date || undefined,
+          base_salary: parseFloat(editForm.base_salary) || undefined,
           department_id: editForm.department_id,
-          position_id:   editForm.position_id,
-          status_id:     editForm.status_id,
+          position_id: editForm.position_id,
+          status_id: editForm.status_id,
         },
       },
       {
@@ -134,10 +134,13 @@ export default function EmployeeDetailPage() {
 
   return (
     <>
-      <DashboardHeader title="Payroll Management" showSearch searchPlaceholder="Search employees..." />
+      <DashboardHeader
+        title="Payroll Management"
+        showSearch
+        searchPlaceholder="Search employees..."
+      />
 
       <div className="p-gutter max-w-container-max mx-auto w-full flex-1 space-y-stack-lg">
-
         {/* ── Employee Header Card ─────────────────────────────────────────── */}
         <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-lg shadow-sm overflow-hidden relative">
           <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-primary/5 to-secondary/5 border-b border-outline-variant/50" />
@@ -228,50 +231,106 @@ export default function EmployeeDetailPage() {
             <form className="p-6" onSubmit={handleEditSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_first">First Name</label>
-                  <input className={INPUT_CLASS} id="ef_first" type="text" value={editForm.first_name}
-                    onChange={(e) => upd("first_name", e.target.value)} required />
+                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_first">
+                    First Name
+                  </label>
+                  <input
+                    className={INPUT_CLASS}
+                    id="ef_first"
+                    type="text"
+                    value={editForm.first_name}
+                    onChange={(e) => upd("first_name", e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_last">Last Name</label>
-                  <input className={INPUT_CLASS} id="ef_last" type="text" value={editForm.last_name}
-                    onChange={(e) => upd("last_name", e.target.value)} required />
+                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_last">
+                    Last Name
+                  </label>
+                  <input
+                    className={INPUT_CLASS}
+                    id="ef_last"
+                    type="text"
+                    value={editForm.last_name}
+                    onChange={(e) => upd("last_name", e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_email">Email</label>
-                  <input className={INPUT_CLASS} id="ef_email" type="email" value={editForm.email}
-                    onChange={(e) => upd("email", e.target.value)} required />
+                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_email">
+                    Email
+                  </label>
+                  <input
+                    className={INPUT_CLASS}
+                    id="ef_email"
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => upd("email", e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_phone">Phone</label>
-                  <input className={INPUT_CLASS} id="ef_phone" type="tel" value={editForm.phone}
-                    onChange={(e) => upd("phone", e.target.value)} />
+                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_phone">
+                    Phone
+                  </label>
+                  <input
+                    className={INPUT_CLASS}
+                    id="ef_phone"
+                    type="tel"
+                    value={editForm.phone}
+                    onChange={(e) => upd("phone", e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_hire">Hire Date</label>
-                  <input className={INPUT_CLASS} id="ef_hire" type="date" value={editForm.hire_date}
-                    onChange={(e) => upd("hire_date", e.target.value)} />
+                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_hire">
+                    Hire Date
+                  </label>
+                  <input
+                    className={INPUT_CLASS}
+                    id="ef_hire"
+                    type="date"
+                    value={editForm.hire_date}
+                    onChange={(e) => upd("hire_date", e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_salary">Base Salary ($)</label>
-                  <input className={INPUT_CLASS} id="ef_salary" type="number" min="0" value={editForm.base_salary}
-                    onChange={(e) => upd("base_salary", e.target.value)} />
+                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_salary">
+                    Base Salary ($)
+                  </label>
+                  <input
+                    className={INPUT_CLASS}
+                    id="ef_salary"
+                    type="number"
+                    min="0"
+                    value={editForm.base_salary}
+                    onChange={(e) => upd("base_salary", e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_status">Status</label>
-                  <select className={SELECT_CLASS} id="ef_status"
+                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_status">
+                    Status
+                  </label>
+                  <select
+                    className={SELECT_CLASS}
+                    id="ef_status"
                     value={editForm.status_id}
-                    onChange={(e) => upd("status_id", Number(e.target.value))}>
+                    onChange={(e) => upd("status_id", Number(e.target.value))}
+                  >
                     <option value={1}>Active</option>
-                    <option value={2}>Inactive</option>
-                    <option value={3}>Suspended</option>
+                    <option value={2}>On Leave</option>
+                    <option value={3}>Terminated</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_dept">Department</label>
-                  <select className={SELECT_CLASS} id="ef_dept"
+                  <label className="font-label-md text-on-surface-variant" htmlFor="ef_dept">
+                    Department
+                  </label>
+                  <select
+                    className={SELECT_CLASS}
+                    id="ef_dept"
                     value={editForm.department_id}
-                    onChange={(e) => upd("department_id", Number(e.target.value))}>
+                    onChange={(e) => upd("department_id", Number(e.target.value))}
+                  >
                     <option value={1}>Finance</option>
                     <option value={2}>Information Technology</option>
                     <option value={3}>Human Resources</option>
@@ -334,13 +393,42 @@ export default function EmployeeDetailPage() {
             {/* Quick Stats */}
             <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-stack-md">
               {[
-                { icon: "payments",              bg: "bg-primary/10",           color: "text-primary",    label: "Annual Salary",      value: employee.salary ? formatCurrency(employee.salary) : "—" },
-                { icon: "account_balance_wallet", bg: "bg-secondary/10",         color: "text-secondary",  label: "Total Earnings YTD", value: employee.salary ? formatCurrency(employee.salary * 0.5) : "—" },
-                { icon: "event_busy",             bg: "bg-error-container/20",   color: "text-error",      label: "Leaves Taken",       value: "8 / 25 Days" },
-                { icon: "schedule",               bg: "bg-tertiary-container/10",color: "text-tertiary",   label: "Avg. Work Hours",    value: "42.5 hrs/wk" },
+                {
+                  icon: "payments",
+                  bg: "bg-primary/10",
+                  color: "text-primary",
+                  label: "Annual Salary",
+                  value: employee.salary ? formatCurrency(employee.salary) : "—",
+                },
+                {
+                  icon: "account_balance_wallet",
+                  bg: "bg-secondary/10",
+                  color: "text-secondary",
+                  label: "Total Earnings YTD",
+                  value: employee.salary ? formatCurrency(employee.salary * 0.5) : "—",
+                },
+                {
+                  icon: "event_busy",
+                  bg: "bg-error-container/20",
+                  color: "text-error",
+                  label: "Leaves Taken",
+                  value: "8 / 25 Days",
+                },
+                {
+                  icon: "schedule",
+                  bg: "bg-tertiary-container/10",
+                  color: "text-tertiary",
+                  label: "Avg. Work Hours",
+                  value: "42.5 hrs/wk",
+                },
               ].map((stat) => (
-                <div key={stat.label} className="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-lg ${stat.bg} flex items-center justify-center ${stat.color}`}>
+                <div
+                  key={stat.label}
+                  className="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant flex items-center gap-4"
+                >
+                  <div
+                    className={`w-12 h-12 rounded-lg ${stat.bg} flex items-center justify-center ${stat.color}`}
+                  >
                     <MaterialIcon icon={stat.icon} />
                   </div>
                   <div>
@@ -357,20 +445,25 @@ export default function EmployeeDetailPage() {
                 <div className="px-6 py-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
                   <h3 className="font-headline-sm text-on-surface">Personal Information</h3>
                   <button onClick={startEditing}>
-                    <MaterialIcon icon="edit_square" className="text-outline cursor-pointer hover:text-primary transition-colors" />
+                    <MaterialIcon
+                      icon="edit_square"
+                      className="text-outline cursor-pointer hover:text-primary transition-colors"
+                    />
                   </button>
                 </div>
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
                   {[
                     { label: "Employee ID", value: employee.employeeId },
-                    { label: "Department",  value: employee.department },
-                    { label: "Role",        value: employee.role       },
-                    { label: "Status",      value: employee.status     },
-                    { label: "Email",       value: employee.email      },
-                    { label: "Phone",       value: employee.phone ?? "—" },
+                    { label: "Department", value: employee.department },
+                    { label: "Role", value: employee.role },
+                    { label: "Status", value: employee.status },
+                    { label: "Email", value: employee.email },
+                    { label: "Phone", value: employee.phone ?? "—" },
                   ].map((field) => (
                     <div key={field.label}>
-                      <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">{field.label}</p>
+                      <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">
+                        {field.label}
+                      </p>
                       <p className="text-body-lg font-medium text-on-surface">{field.value}</p>
                     </div>
                   ))}
@@ -383,13 +476,15 @@ export default function EmployeeDetailPage() {
                 </div>
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
                   {[
-                    { label: "Join Date",         value: employee.joinDate ?? "—" },
-                    { label: "Work Type",         value: "Full-Time"              },
-                    { label: "Reports To",        value: "Management"             },
-                    { label: "Work Anniversary",  value: employee.joinDate ?? "—" },
+                    { label: "Join Date", value: employee.joinDate ?? "—" },
+                    { label: "Work Type", value: "Full-Time" },
+                    { label: "Reports To", value: "Management" },
+                    { label: "Work Anniversary", value: employee.joinDate ?? "—" },
                   ].map((field) => (
                     <div key={field.label}>
-                      <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">{field.label}</p>
+                      <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">
+                        {field.label}
+                      </p>
                       <p className="text-body-lg font-medium text-on-surface">{field.value}</p>
                     </div>
                   ))}
@@ -407,11 +502,16 @@ export default function EmployeeDetailPage() {
                 <div className="bg-primary/5 rounded-lg p-4 border border-primary/20">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-white rounded flex items-center justify-center border border-outline-variant shadow-sm">
-                      <MaterialIcon icon="account_balance" className="text-on-primary-fixed-variant" />
+                      <MaterialIcon
+                        icon="account_balance"
+                        className="text-on-primary-fixed-variant"
+                      />
                     </div>
                     <div>
                       <p className="font-label-md text-on-surface">Chase Manhattan Bank</p>
-                      <p className="text-label-sm text-on-surface-variant">Direct Deposit • **** 4291</p>
+                      <p className="text-label-sm text-on-surface-variant">
+                        Direct Deposit • **** 4291
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -426,15 +526,22 @@ export default function EmployeeDetailPage() {
                 </div>
                 <div className="divide-y divide-outline-variant/30">
                   {MOCK_DOCUMENTS.map((doc) => (
-                    <div key={doc.name} className="p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer group">
+                    <div
+                      key={doc.name}
+                      className="p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer group"
+                    >
                       <div className="flex items-center gap-3">
                         <MaterialIcon
                           icon={doc.type === "PDF" ? "picture_as_pdf" : "description"}
                           className={doc.type === "PDF" ? "text-error" : "text-primary"}
                         />
                         <div>
-                          <p className="text-label-md font-medium text-on-surface group-hover:text-primary transition-colors">{doc.name}</p>
-                          <p className="text-label-sm text-on-surface-variant">{doc.type} • {doc.size} • {doc.date}</p>
+                          <p className="text-label-md font-medium text-on-surface group-hover:text-primary transition-colors">
+                            {doc.name}
+                          </p>
+                          <p className="text-label-sm text-on-surface-variant">
+                            {doc.type} • {doc.size} • {doc.date}
+                          </p>
                         </div>
                       </div>
                       <MaterialIcon icon="download" className="text-outline-variant" />

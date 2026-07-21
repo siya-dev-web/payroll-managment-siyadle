@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosHeaders } from "axios";
 
 const api = axios.create({
   baseURL:
@@ -19,10 +19,9 @@ api.interceptors.request.use((config) => {
 
     const parsed = JSON.parse(stored) as { token?: string };
     if (parsed.token) {
-      config.headers = {
-        ...(config.headers ?? {}),
-        Authorization: `Bearer ${parsed.token}`,
-      };
+      const headers = new AxiosHeaders(config.headers);
+      headers.set("Authorization", `Bearer ${parsed.token}`);
+      config.headers = headers;
     }
   } catch {
     // Ignore malformed storage and continue without an auth header.
