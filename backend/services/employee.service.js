@@ -1,9 +1,17 @@
 import pool from "../config/db.js";
-import { getPaginationParams, buildPaginationMeta } from "../utils/pagination.js";
+import {
+  getPaginationParams,
+  buildPaginationMeta,
+} from "../utils/pagination.js";
 
 const ALLOWED_SORT_FIELDS = [
-  "e.id", "e.first_name", "e.last_name", "e.email",
-  "e.hire_date", "e.base_salary", "e.created_at",
+  "e.id",
+  "e.first_name",
+  "e.last_name",
+  "e.email",
+  "e.hire_date",
+  "e.base_salary",
+  "e.created_at",
 ];
 
 export const employeeService = {
@@ -11,11 +19,15 @@ export const employeeService = {
    * Get a paginated, searchable, filterable list of employees.
    */
   async getAll(query) {
-    const { page, limit, offset, orderBy, orderDir } =
-      getPaginationParams(query, ALLOWED_SORT_FIELDS);
+    const { page, limit, offset, orderBy, orderDir } = getPaginationParams(
+      query,
+      ALLOWED_SORT_FIELDS,
+    );
 
     const search = query.search ? `%${query.search}%` : null;
-    const departmentId = query.department_id ? parseInt(query.department_id, 10) : null;
+    const departmentId = query.department_id
+      ? parseInt(query.department_id, 10)
+      : null;
     const statusId = query.status_id ? parseInt(query.status_id, 10) : null;
 
     const conditions = [];
@@ -23,7 +35,7 @@ export const employeeService = {
 
     if (search) {
       conditions.push(
-        "(e.first_name LIKE ? OR e.last_name LIKE ? OR e.email LIKE ?)"
+        "(e.first_name LIKE ? OR e.last_name LIKE ? OR e.email LIKE ?)",
       );
       params.push(search, search, search);
     }
@@ -104,7 +116,7 @@ export const employeeService = {
        INNER JOIN employee_status es ON e.status_id    = es.id
        INNER JOIN users           u  ON e.created_by   = u.id
        WHERE e.id = ?`,
-      [id]
+      [id],
     );
 
     if (rows.length === 0) {
@@ -121,14 +133,20 @@ export const employeeService = {
    */
   async create(data, createdBy) {
     const {
-      first_name, last_name, email, phone,
-      department_id, position_id, status_id,
-      hire_date, base_salary,
+      first_name,
+      last_name,
+      email,
+      phone,
+      department_id,
+      position_id,
+      status_id,
+      hire_date,
+      base_salary,
     } = data;
 
     const [existing] = await pool.execute(
       "SELECT id FROM employees WHERE email = ?",
-      [email]
+      [email],
     );
     if (existing.length > 0) {
       const error = new Error("An employee with this email already exists.");
@@ -142,9 +160,17 @@ export const employeeService = {
           department_id, position_id, status_id, hire_date, base_salary)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        createdBy, first_name, last_name, email, phone || null,
-        department_id, position_id, status_id, hire_date, base_salary,
-      ]
+        createdBy,
+        first_name,
+        last_name,
+        email,
+        phone || null,
+        department_id,
+        position_id,
+        status_id,
+        hire_date,
+        base_salary,
+      ],
     );
 
     return this.getById(result.insertId);
@@ -160,9 +186,15 @@ export const employeeService = {
     const params = [];
 
     const allowed = [
-      "first_name", "last_name", "email", "phone",
-      "department_id", "position_id", "status_id",
-      "hire_date", "base_salary",
+      "first_name",
+      "last_name",
+      "email",
+      "phone",
+      "department_id",
+      "position_id",
+      "status_id",
+      "hire_date",
+      "base_salary",
     ];
 
     for (const key of allowed) {
@@ -181,7 +213,7 @@ export const employeeService = {
     params.push(id);
     await pool.execute(
       `UPDATE employees SET ${fields.join(", ")} WHERE id = ?`,
-      params
+      params,
     );
 
     return this.getById(id);
@@ -193,6 +225,11 @@ export const employeeService = {
   async remove(id) {
     await this.getById(id); // throws 404 if not found
 
-    await pool.execute("DELETE FROM employees WHERE id = ?", [id]);
+    await pool.execute(
+      "UPDATE employees SET status_id = ? WHERE id = ?",
+      [3, id], // assuming status_id 3 = "Inactive" or "Terminated"
+    );
+
+    return { message: "Employee marked as inactive" };
   },
 };
